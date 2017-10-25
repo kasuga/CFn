@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create VPC
+
+Parameters:
+  # Scope of project
+  EnvType:
+    Description: Environment type.
+    Default: dev
+    Type: String
+    AllowedValues:
+      - test
+      - dev
+      - prd
+    ConstraintDescription: must specify dev or mnt or prd.
+  # Project ID Config
+  ProjectId:
+    Description: Project name id.
+    Type: String
+    MinLength: '0'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must specify Project id.
+
+Resources:
+  # Create VPC
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      # CidrBlock Config
+      CidrBlock: 192.168.0.0/16
+      # DNS Solution Support true or false
+      EnableDnsSupport: true
+      # Get DNS HostName true or false
+      EnableDnsHostnames: true
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'vpc' ] ]

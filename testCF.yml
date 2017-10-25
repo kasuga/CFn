@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates a RDS Aurora cluster.
+
+Parameters:
+  # Scope of project
+  EnvType:
+    Description: Environment type.
+    Default: dev
+    Type: String
+    AllowedValues:
+      - test
+      - dev
+      - prd
+    ConstraintDescription: must specify dev or mnt or prd.
+  # Project ID Config
+  ProjectId:
+    Description: Project name id.
+    Type: String
+    MinLength: "0"
+    MaxLength: "16"
+    AllowedPattern: "[a-zA-Z0-9]*"
+    ConstraintDescription: must specify Project id.
+  OriginName:
+    Description: Project name id.
+    Type: String
+    MinLength: "0"
+    MaxLength: "99"
+
+Resources:
+  # Create CloudFront
+  ClodFront:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !Ref OriginName
+            Id: !Join ["-",[Custom, "Ref": "OriginName"] ]
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+        Enabled: true
+        DefaultRootObject: index.html
+        DefaultCacheBehavior:
+          TargetOriginId: !Join ["-", [Custom, "Ref": "OriginName"] ]
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            Cookies:
+              Forward: none
+            QueryString: true
+          SmoothStreaming: false

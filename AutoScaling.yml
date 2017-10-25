@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates AutoScaling
+
+Parameters:
+  # Designation SSH for keyPair
+  KeyPair:
+    Description: KeyPair Name.
+    Type: AWS::EC2::KeyPair::KeyName
+  # Scope of project
+  EnvType:
+    Description: Environment type.
+    Default: dev
+    Type: String
+    AllowedValues:
+      - test
+      - dev
+      - prd
+    ConstraintDescription: must specify dev or mnt or prd.
+  # Project ID Config
+  ProjectId:
+    Description: Project name id.
+    Type: String
+    MinLength: "0"
+    MaxLength: "16"
+    AllowedPattern: "[a-zA-Z0-9]*"
+    ConstraintDescription: must specify Project id.
+    # AutoScaling Subnet
+  AutoScalingSubnets:
+    Description: The subnets to place Auto Scaling
+    Type: 'List<AWS::EC2::Subnet::Id>'
+  # AutoScaling Security Group
+  AutoScalingSecurityGroup:
+    Description: The Security Group to place AutoScaling
+    Type: AWS::EC2::SecurityGroup::Id
+  # Set Catch alert Email
+  OperatorEMail:
+    Description: EMail address to notify if there are any scaling operations
+    Type: String
+    AllowedPattern: >-
+      ([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)
+    ConstraintDescription: must be a valid email address.
+
+Mappings:
+  StackConfig:
+    # EC2 image ID Config
+    EC2:
+      # Free Amazon Linux
+      ImageId: ami-8c1be5f6
+
+Resources:
+  # Alert Email Address config
+  NotificationTopic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      Subscription:
+        - Endpoint: !Ref OperatorEMail
+          Protocol: email
+  # Create AutoScaling Group
+  AutoScalingGroup:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      Cooldown: 300
+      DesiredCapacity: 1
+      HealthCheckGracePeriod: 300
+      HealthCheckType: EC2
+      LaunchConfigurationName: !Ref AutoScalingLaunch
+      MinSize: 1
+      MaxSize: 2
+      TargetGroupARNs:
+        - 'arn:aws:elasticloadbalancing:us-east-1:937281553742:loadbalancer/app/test-alb/4c2a38611da4558a'
+      VPCZoneIdentifier: !Ref AutoScalingSubnets
+      NotificationConfiguration:
+        TopicARN: !Ref NotificationTopic
+        NotificationTypes:
+          - 'autoscaling:EC2_INSTANCE_LAUNCH'
+          - 'autoscaling:EC2_INSTANCE_LAUNCH_ERROR'
+          - 'autoscaling:EC2_INSTANCE_TERMINATE'
+          - 'autoscaling:EC2_INSTANCE_TERMINATE_ERROR'
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+        Count: 1
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime: PT5M
+        WaitOnResourceSignals: true
+      Tags:
+        - Key: Name
+          Value: !Join ["-", ["Ref":"EnvType", "Ref":"ProjectId",AutoScalingGroup] ]
+  # Create AutoScaling LaunchConfiguration
+  AutoScalingLaunch:
+    Type: "AWS::AutoScaling::LaunchConfiguration"
+    Properties:
+      ImageId: !FindInMap [ StackConfig, EC2, ImageId ]
+      InstanceType: t2.micro
+      KeyName: !Ref KeyPair
+      SecurityGroups:
+        - !Ref AutoScalingSecurityGroup
+
+  # Create Scale Up Policy
+  ScaleUpPolicy:
+    Type: 'AWS::AutoScaling::ScalingPolicy'
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      Cooldown: 60
+      ScalingAdjustment: 1
+  # Create Scale Down Plicy
+  ScaleDownPolicy:
+    Type: 'AWS::AutoScaling::ScalingPolicy'
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      Cooldown: 60
+      ScalingAdjustment: -1
+  # Create alert When the default value of CUP is exceeded
+  CPUHighAlert:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmDescription: Scale-up if CPU > 90% for 5minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      Threshold: 90
+      AlarmActions:
+        - !Ref ScaleUpPolicy
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroup
+      ComparisonOperator: GreaterThanThreshold
+  CPUAlarmLow:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmDescription: Scale-down if CPU < 30% for 5 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 90
+      AlarmActions:
+        - !Ref ScaleDownPolicy
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroup
+      ComparisonOperator: LessThanThreshold

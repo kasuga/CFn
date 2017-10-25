@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates a RDS Aurora cluster.
+
+Parameters:
+  # Scope of project
+  EnvType:
+    Description: Environment type.
+    Default: dev
+    Type: String
+    AllowedValues:
+      - test
+      - dev
+      - prd
+    ConstraintDescription: must specify dev or mnt or prd.
+  # Project ID Config
+  ProjectId:
+    Description: Project name id.
+    Type: String
+    MinLength: '0'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must specify Project id.
+  # Create Certificate Name
+  CertificateName:
+    Description: The certificate name for SSL compliance
+    Type: String
+    MinLength: '3'
+    MaxLength: '41'
+    ConstraintDescription: must specify Certificate name
+  # Create Origin Certificate Name
+  OriginCertificateName:
+    Description: The certificate name for SSL compliance
+    Type: String
+    MinLength: '3'
+    MaxLength: '41'
+    ConstraintDescription: must specify Origin Certificate name
+
+Resources:
+  # Create CloudFront
+  ClodFront:
+    Type: 'AWS::CloudFront::Distribution'
+    Properties:
+      DistributionConfig:
+        # set CNAME
+        Aliases:
+          - !Ref CertificateName
+        Origins:
+          - DomainName: !Ref OriginCertificateName
+            Id: !Join ['-',[Custom, 'Ref': 'OriginCertificateName'] ]
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+        Enabled: true
+        DefaultRootObject: index.html
+        DefaultCacheBehavior:
+          TargetOriginId: !Join ['-', [Custom, 'Ref': 'OriginCertificateName'] ]
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            Cookies:
+              Forward: none
+            QueryString: true
+          SmoothStreaming: false
+        ViewerCertificate:
+            AcmCertificateArn: arn:aws:acm:us-east-1:937281553742:certificate/4acaa565-9e53-4fa6-be7d-3691085df1cb
+            SslSupportMethod: sni-only

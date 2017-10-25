@@ -1,0 +1,112 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates a RDS Aurora cluster.
+
+Parameters:
+  # Scope of project
+  EnvType:
+    Description: Environment type.
+    Default: dev
+    Type: String
+    AllowedValues:
+      - test
+      - dev
+      - prd
+    ConstraintDescription: must specify dev or mnt or prd.
+  # Project ID Config
+  ProjectId:
+    Description: Project name id.
+    Type: String
+    MinLength: '0'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must specify Project id.
+  # Set DB Instance Type
+  DBInstanceType:
+    Default:  db.r3.large
+    Type: String
+    AllowedValues:
+      - db.t2.small
+      - db.t2.medium
+      - db.r3.large
+      - db.r3.xlarge
+      - db.r3.2xlarge
+      - db.r3.4xlarge
+      - db.r3.8xlarge
+    Description: The instance type to use for the database.
+  # Create DB Name
+  DBName:
+    NoEcho: false
+    Description: The database name
+    Type: String
+    MinLength: '1'
+    MaxLength: '10'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must contain only alphanumeric characters.
+  # Create DB Master user
+  DBUser:
+    NoEcho: false
+    Description: The database admin account username
+    Type: String
+    MinLength: '1'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+  # Create DB Master user pass
+  DBPassword:
+    NoEcho: true
+    Description: The database admin account password
+    Type: String
+    MinLength: '8'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must contain only alphanumeric characters.
+  # Set Database Subnet1
+  DatabaseSubnets:
+    Description: The subnets to place database instances in.
+    Type: 'List<AWS::EC2::Subnet::Id>'
+  # Set RDS Security Group
+  RDSSecurityGroup:
+    Description: The Security Group to place RDS
+    Type: AWS::EC2::SecurityGroup::Id
+
+Resources:
+  # Create DB Subnet Group
+  RDSMultiAZSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: Enable RDS Multi-AZ access.
+      SubnetIds:
+        - !Ref DatabaseSubnets
+  # Create RDS Cluster
+  RDSCluster:
+    Type: 'AWS::RDS::DBCluster'
+    Properties:
+      Engine: aurora
+      DatabaseName: !Ref DBName
+      MasterUsername: !Ref DBUser
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !Ref RDSMultiAZSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref RDSSecurityGroup
+  # Create Primary Instance
+  RDSPrimaryInstance:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      Engine: aurora
+      DBSubnetGroupName: !Ref RDSMultiAZSubnetGroup
+      DBClusterIdentifier: !Ref RDSCluster
+      DBInstanceClass: !Ref DBInstanceType
+      DBInstanceIdentifier: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'aurora-a' ] ]
+  # Create Replica Instance
+  RDSReplicaInstance:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      AvailabilityZone: us-east-1c
+      Engine: aurora
+      DBClusterIdentifier: !Ref RDSCluster
+      DBInstanceClass: !Ref DBInstanceType
+      DBSubnetGroupName: !Ref RDSMultiAZSubnetGroup
+      DBInstanceIdentifier: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'aurora-c' ] ]
+
+
+

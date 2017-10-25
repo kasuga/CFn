@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create EC2 Instance
+
+Parameters:
+  # Designation SSH for keyPair
+  KeyPair:
+    Description: KeyPair Name.
+    Type: AWS::EC2::KeyPair::KeyName
+  # Scope of project
+  EnvType:
+    Description: Environment type.
+    Default: dev
+    Type: String
+    AllowedValues:
+      - test
+      - dev
+      - prd
+    ConstraintDescription: must specify dev or mnt or prd.
+  # Project ID Config
+  ProjectId:
+    Description: Project name id.
+    Type: String
+    MinLength: '0'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must specify Project id.
+  # SpringBoard EC Subnet
+  SpringBoardSubnets:
+    Description: The subnets to SpringBoard
+    Type: AWS::EC2::Subnet::Id
+  # WEB1 Subnet
+  WEB1Subnets:
+    Description: The subnets to place WEB1
+    Type: AWS::EC2::Subnet::Id
+    # WEB2 Subnet
+  WEB2Subnets:
+    Description: The subnets to place WEB2
+    Type: AWS::EC2::Subnet::Id
+  # ElastiCache Security Group
+  SpringBoardSecurityGroup:
+    Description: The Security Group to place SpringBoard
+    Type: AWS::EC2::SecurityGroup::Id
+    # ElastiCache Security Group
+  WEB1SecurityGroup:
+    Description: The Security Group to place WEB1
+    Type: AWS::EC2::SecurityGroup::Id
+    # ElastiCache Security Group
+  WEB2SecurityGroup:
+    Description: The Security Group to place WEB2
+    Type: AWS::EC2::SecurityGroup::Id
+
+Mappings:
+  StackConfig:
+    # EC2 image ID Config
+    EC2:
+      # Free Amazon Linux
+      ImageId: ami-8c1be5f6
+
+Resources:
+   # Creat SpringBoard EC2 Instance
+  SpringBoardEC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      AvailabilityZone: us-east-1a
+      # Shutdown behavior
+      InstanceInitiatedShutdownBehavior: stop
+      ImageId: !FindInMap [ StackConfig, EC2, ImageId ]
+      InstanceType: t2.micro
+      # keypairName when EC 2 is connected
+      KeyName: !Ref KeyPair
+      # Detailed monitoring setting
+      Monitoring: false
+      # Associate  security group
+      SecurityGroupIds:
+        - !Ref SpringBoardSecurityGroup
+      # Associate Subnet
+      SubnetId: !Ref SpringBoardSubnets
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'SpringBoard' ] ]
+
+  # Create WEBServer1 EC2 Instance
+  WEB1EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      AvailabilityZone: us-east-1a
+      InstanceInitiatedShutdownBehavior: stop
+      ImageId: !FindInMap [ StackConfig, EC2, ImageId ]
+      InstanceType: 't2.micro'
+      KeyName: !Ref KeyPair
+      Monitoring: false
+      SecurityGroupIds:
+        - !Ref WEB1SecurityGroup
+      SubnetId: !Ref WEB1Subnets
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'WEB1' ] ]
+
+  # Create WEBServer EC2 Instance
+  WEB2EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      AvailabilityZone: 'us-east-1a'
+      InstanceInitiatedShutdownBehavior: stop
+      ImageId: !FindInMap [ StackConfig, EC2, ImageId ]
+      InstanceType: 't2.micro'
+      KeyName: !Ref KeyPair
+      Monitoring: false
+      SecurityGroupIds:
+        - !Ref WEB2SecurityGroup
+      SubnetId: !Ref WEB2Subnets
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'WEB2' ] ]

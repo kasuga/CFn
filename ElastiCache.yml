@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Test CFn Template
+
+Parameters:
+  # Scope of project
+  EnvType:
+    Description: Environment type.
+    Default: dev
+    Type: String
+    AllowedValues:
+      - test
+      - dev
+      - prd
+    ConstraintDescription: must specify dev or mnt or prd.
+  # Project ID Config
+  ProjectId:
+    Description: Project name id.
+    Type: String
+    MinLength: '0'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must specify Project id.
+  # Set Created VPC
+  VPC:
+    Description: The VPC
+    Type: AWS::EC2::VPC::Id
+  # ElastiCache Subnet
+  ElastiCacheSubnets:
+    Description: The subnets to place ElasticCache
+    Type: AWS::EC2::Subnet::Id
+  # ElastiCache Security Group
+  ElastiCacheSecurityGroup:
+    Description: The securitygroup to place ElasticCache
+    Type: AWS::EC2::SecurityGroup::Id
+
+Resources:
+  # Create ElastiCache Subnet Group
+  ElastiCacheSubnet:
+    Type: 'AWS::ElastiCache::SubnetGroup'
+    Properties:
+      CacheSubnetGroupName: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'Redis' ] ]
+      Description: Subnet for ElastiCache
+      SubnetIds:
+        - !Ref ElastiCacheSubnets
+
+  # Create ElastiCache
+  ElastiCache:
+    Type: 'AWS::ElastiCache::ReplicationGroup'
+    Properties:
+      # Multi AZ true or false  over t1 t2
+      AutomaticFailoverEnabled: false
+      # Types of cache nodes
+      CacheNodeType: cache.t2.micro
+      CacheSubnetGroupName: !Ref ElastiCacheSubnet
+      # memcached or redis
+      Engine: redis
+      NumCacheClusters: 2
+      Port: 6379
+      ReplicationGroupDescription: 'Redis cluster'
+      SecurityGroupIds:
+        - !Ref ElastiCacheSecurityGroup
+      Tags:
+        - Key: 'Name'
+          Value: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'Redis' ] ]
