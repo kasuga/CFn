@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AuroraTest
+Parameters:
+  VpcId:
+    Description: Input your VpcId
+    Type: String
+  SubnetA:
+    Description: Input your VpcId's zoneA SubnetId
+    Type: String
+  SubnetC:
+    Description: Input your VpcId's zoneC SubnetId
+    Type: String
+  RDSInstanceClass:
+    Description: Chose RDS-Aurora instance
+    Type: String
+    Default: db.r3.large
+    AllowedValues:
+      - db.t2.small
+      - db.t2.medium
+      - db.r3.large
+      - db.r3.xlarge
+      - db.r3.2xlarge
+      - db.r3.4xlarge
+      - db.r3.8xlarge
+  RDSInstanceDBName:
+    Description: RDS database name
+    Type: String
+    MinLength: '1'
+    MaxLength: '64'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+  RDSInstanceMasterUsername:
+    NoEcho: 'true'
+    Description: RDS master user
+    Type: String
+    MinLength: '1'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+  RDSInstancePassword:
+    NoEcho: 'true'
+    Description: RDS master password
+    Type: String
+    MinLength: '8'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must contain only alphanumeric characters.
+Resources:
+  RDSMultiAZSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: Enable RDS Multi-AZ access.
+      SubnetIds:
+        - !Ref SubnetA
+        - !Ref SubnetC
+  RDSSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable RDS access.
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: '3306'
+          ToPort: '3306'
+  RDSDBClusterParameterGroup:
+    Type: 'AWS::RDS::DBClusterParameterGroup'
+    Properties:
+      Parameters:
+        character_set_database: utf8
+      Family: aurora5.6
+      Description: A sample parameter group
+  RDSCluster:
+    Type: 'AWS::RDS::DBCluster'
+    Properties:
+      AvailabilityZones:
+        - ap-northeast-1a
+        - ap-northeast-1c
+      MasterUsername: !Ref RDSInstanceMasterUsername
+      MasterUserPassword: !Ref RDSInstancePassword
+      DatabaseName: !Ref RDSInstanceDBName
+      Engine: aurora
+      DBSubnetGroupName: !Ref RDSMultiAZSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref RDSSecurityGroup
+      DBClusterParameterGroupName: !Ref RDSDBClusterParameterGroup
+  RDSDBInstanceA:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      AvailabilityZone: ap-northeast-1a
+      DBSubnetGroupName: !Ref RDSMultiAZSubnetGroup
+      Engine: aurora
+      DBClusterIdentifier: !Ref RDSCluster
+      DBInstanceIdentifier: !Join
+        - '-'
+        - - !Ref 'AWS::StackName'
+          - aurora-a
+      DBInstanceClass: !Ref RDSInstanceClass
+  RDSDBInstanceC:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      AvailabilityZone: ap-northeast-1c
+      DBSubnetGroupName: !Ref RDSMultiAZSubnetGroup
+      Engine: aurora
+      DBClusterIdentifier: !Ref RDSCluster
+      DBInstanceIdentifier: !Join
+        - '-'
+        - - !Ref 'AWS::StackName'
+          - aurora-c
+      DBInstanceClass: !Ref RDSInstanceClass
