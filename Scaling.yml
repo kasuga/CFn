@@ -48,27 +48,21 @@ Mappings:
       ImageId: ami-8c1be5f6
 
 Resources:
-  # Alert Email Address config
   NotificationTopic:
     Type: 'AWS::SNS::Topic'
     Properties:
       Subscription:
         - Endpoint: !Ref OperatorEMail
           Protocol: email
-  # Create AutoScaling Group
-  AutoScalingGroup:
-    Type: "AWS::AutoScaling::AutoScalingGroup"
+  WebServerGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
     Properties:
-      Cooldown: 300
-      DesiredCapacity: 1
-      HealthCheckGracePeriod: 300
-      HealthCheckType: EC2
-      LaunchConfigurationName: !Ref AutoScalingLaunch
-      MinSize: 1
-      MaxSize: 2
-      TargetGroupARNs:
-        - 'arn:aws:elasticloadbalancing:us-east-1:937281553742:loadbalancer/app/test-alb/4c2a38611da4558a'
       VPCZoneIdentifier: !Ref AutoScalingSubnets
+      LaunchConfigurationName: !Ref AutoScalingLaunch
+      MinSize: '1'
+      MaxSize: '2'
+      # TargetGroupARNs:
+      #   - !Ref ALBTargetGroup
       NotificationConfiguration:
         TopicARN: !Ref NotificationTopic
         NotificationTypes:
@@ -78,17 +72,14 @@ Resources:
           - 'autoscaling:EC2_INSTANCE_TERMINATE_ERROR'
     CreationPolicy:
       ResourceSignal:
-        Timeout: PT5M
-        Count: 1
+        Timeout: PT15M
+        Count: '1'
     UpdatePolicy:
       AutoScalingRollingUpdate:
-        MinInstancesInService: 1
-        MaxBatchSize: 1
-        PauseTime: PT5M
-        WaitOnResourceSignals: true
-      Tags:
-        - Key: Name
-          Value: !Join ["-", ["Ref":"EnvType", "Ref":"ProjectId",AutoScalingGroup] ]
+        MinInstancesInService: '1'
+        MaxBatchSize: '1'
+        PauseTime: PT15M
+        WaitOnResourceSignals: 'true'
   # Create AutoScaling LaunchConfiguration
   AutoScalingLaunch:
     Type: "AWS::AutoScaling::LaunchConfiguration"
@@ -98,52 +89,49 @@ Resources:
       KeyName: !Ref KeyPair
       SecurityGroups:
         - !Ref AutoScalingSecurityGroup
-
-  # Create Scale Up Policy
-  ScaleUpPolicy:
+  WebServerScaleUpPolicy:
     Type: 'AWS::AutoScaling::ScalingPolicy'
     Properties:
       AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref AutoScalingGroup
-      Cooldown: 60
-      ScalingAdjustment: 1
-  # Create Scale Down Plicy
-  ScaleDownPolicy:
+      AutoScalingGroupName: !Ref WebServerGroup
+      Cooldown: '60'
+      ScalingAdjustment: '1'
+  WebServerScaleDownPolicy:
     Type: 'AWS::AutoScaling::ScalingPolicy'
     Properties:
       AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref AutoScalingGroup
-      Cooldown: 60
-      ScalingAdjustment: -1
-  # Create alert When the default value of CUP is exceeded
-  CPUHighAlert:
+      AutoScalingGroupName: !Ref WebServerGroup
+      Cooldown: '60'
+      ScalingAdjustment: '-1'
+  CPUAlarmHigh:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
-      AlarmDescription: Scale-up if CPU > 90% for 5minutes
+      AlarmDescription: Scale-up if CPU > 90% for 10 minutes
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
-      Period: 300
-      Threshold: 90
+      Period: '300'
+      EvaluationPeriods: '2'
+      Threshold: '90'
       AlarmActions:
-        - !Ref ScaleUpPolicy
+        - !Ref WebServerScaleUpPolicy
       Dimensions:
         - Name: AutoScalingGroupName
-          Value: !Ref AutoScalingGroup
+          Value: !Ref WebServerGroup
       ComparisonOperator: GreaterThanThreshold
   CPUAlarmLow:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
-      AlarmDescription: Scale-down if CPU < 30% for 5 minutes
+      AlarmDescription: Scale-down if CPU < 70% for 10 minutes
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 90
+      Period: '300'
+      EvaluationPeriods: '2'
+      Threshold: '70'
       AlarmActions:
-        - !Ref ScaleDownPolicy
+        - !Ref WebServerScaleDownPolicy
       Dimensions:
         - Name: AutoScalingGroupName
-          Value: !Ref AutoScalingGroup
+          Value: !Ref WebServerGroup
       ComparisonOperator: LessThanThreshold

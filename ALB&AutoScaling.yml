@@ -1,0 +1,251 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates ALB & AutoScaling
+
+Parameters:
+# Designation SSH for keyPair
+  KeyPair:
+    Description: The EC2 Key Pair to allow SSH access to the instances
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  # Scope of project
+  EnvType:
+    Description: Environment type.
+    Default: dev
+    Type: String
+    AllowedValues:
+      - test
+      - dev
+      - prd
+    ConstraintDescription: must specify dev or mnt or prd.
+  # Project ID Config
+  ProjectId:
+    Description: Project name id.
+    Type: String
+    MinLength: '0'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must specify Project id.
+  # Set Created VPC
+  VPC:
+    Description: Set VPC.
+    Type: AWS::EC2::VPC::Id
+  # Set ALB Subnet1
+  ALBSubnet1:
+    Description: The subnets to place ALB.
+    Type: AWS::EC2::Subnet::Id
+  # Set ALB Subnet2
+  ALBSubnet2:
+    Description: The subnets to place ALB.
+    Type: AWS::EC2::Subnet::Id
+    # AutoScaling Subnet
+  AutoScalingSubnets:
+    Description: The subnets to place Auto Scaling
+    Type: 'List<AWS::EC2::Subnet::Id>'
+  # Set ALB EC2 instance
+  EC2Balancing1:
+    Description:  The Balancing EC2 instance
+    Type: AWS::EC2::Instance::Id
+  EC2Balancing2:
+    Description:  The Balancing EC2 instance
+    Type: AWS::EC2::Instance::Id
+  # Set ALB Security Group
+  ALBSecurityGroup:
+    Description: The Security Group to place ALB
+    Type: AWS::EC2::SecurityGroup::Id
+  # AutoScaling Security Group
+  AutoScalingSecurityGroup:
+    Description: The Security Group to place AutoScaling
+    Type: AWS::EC2::SecurityGroup::Id
+  # Create Origin Certificate Name
+  OriginCertificateName:
+    Description: Please enter theARN of the created ELB certificate
+    Type: String
+    MinLength: '3'
+    MaxLength: '99'
+    ConstraintDescription: must specify Origin Certificate name
+  # EC2 Instance Type
+  InstanceType:
+    Description: Please Select EC2 instance type.
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - m1.small
+      - m1.medium
+      - m1.large
+      - m1.xlarge
+  # Set Catch alert Email
+  OperatorEMail:
+    Description: EMail address to notify if there are any scaling operations
+    Type: String
+    AllowedPattern: >-
+      ([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)
+    ConstraintDescription: must be a valid email address.
+
+Mappings:
+  StackConfig:
+    # EC2 image ID Config
+    EC2:
+      # Free Amazon Linux
+      ImageId: ami-8c1be5f6
+
+Resources:
+  #Create ALB TargetGroup
+  ALBTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /
+      HealthCheckPort: traffic-port
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      Matcher:
+        HttpCode: 200
+      Name: TestALB
+      Port: 443
+      Protocol: HTTP
+      Tags:
+        - Key: Name
+          Value: !Join ['-', ['Ref':'EnvType', 'Ref':'ProjectId', TestALB]]
+      Targets:
+        - Id: !Ref EC2Balancing1
+          Port: 80
+        - Id: !Ref EC2Balancing2
+          Port: 80
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref VPC
+  # Create ALB
+  ALB:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: TestALB
+      # Select internet-facing or internal
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref  ALBSecurityGroup
+      Subnets:
+         - !Ref ALBSubnet1
+         - !Ref ALBSubnet2
+      Tags:
+        - Key: Name
+          Value: !Join ['-', ['Ref':'EnvType', 'Ref':'ProjectId',TestALB] ]
+      Type: application
+      IpAddressType: ipv4
+  # Create ALB Listener
+  ALBListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+        Certificates:
+          - CertificateArn: !Ref OriginCertificateName
+        DefaultActions:
+          - Type: forward
+            TargetGroupArn: !Ref ALBTargetGroup
+        LoadBalancerArn:  !Ref ALB
+        Port: 443
+        Protocol: HTTPS
+  # A;ert Email Address config
+  NotificationTopic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      Subscription:
+        - Endpoint: !Ref OperatorEMail
+          Protocol: email
+  # Create AutoScaling Group
+  AutoScalingGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      Cooldown: 300
+      DesiredCapacity: 1
+      HealthCheckGracePeriod: 300
+      HealthCheckType: EC2
+      VPCZoneIdentifier: !Ref AutoScalingSubnets
+      LaunchConfigurationName: !Ref LaunchConfig
+      MinSize: '1'
+      MaxSize: '2'
+      TargetGroupARNs:
+        - !Ref ALBTargetGroup
+      NotificationConfiguration:
+        TopicARN: !Ref NotificationTopic
+        NotificationTypes:
+          - 'autoscaling:EC2_INSTANCE_LAUNCH'
+          - 'autoscaling:EC2_INSTANCE_LAUNCH_ERROR'
+          - 'autoscaling:EC2_INSTANCE_TERMINATE'
+          - 'autoscaling:EC2_INSTANCE_TERMINATE_ERROR'
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+        Count: '1'
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: '1'
+        MaxBatchSize: '1'
+        PauseTime: PT5M
+        WaitOnResourceSignals: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join ["-", ["Ref":"EnvType", "Ref":"ProjectId",AutoScalingGroup] ]
+  # Create AutoScaling Launch Config
+  LaunchConfig:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+    Properties:
+      KeyName: !Ref KeyPair
+      ImageId: !FindInMap [ StackConfig, EC2, ImageId ]
+      SecurityGroups:
+        - !Ref AutoScalingSecurityGroup
+      InstanceType: !Ref InstanceType
+  # Create Up Scale Policy
+  ScaleUpPolicy:
+    Type: 'AWS::AutoScaling::ScalingPolicy'
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      Cooldown: '60'
+      ScalingAdjustment: '1'
+  # Create Down Scale Policy
+  ScaleDownPolicy:
+    Type: 'AWS::AutoScaling::ScalingPolicy'
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      Cooldown: '60'
+      ScalingAdjustment: '-1'
+  # Create alert
+  CPUAlarmHigh:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmDescription: Scale-up if CPU > 90% for 10 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '2'
+      Threshold: '90'
+      AlarmActions:
+        - !Ref ScaleUpPolicy
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroup
+      ComparisonOperator: GreaterThanThreshold
+  # Create alert
+  CPUAlarmLow:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmDescription: Scale-down if CPU < 70% for 10 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '2'
+      Threshold: '70'
+      AlarmActions:
+        - !Ref ScaleDownPolicy
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroup
+      ComparisonOperator: LessThanThreshold

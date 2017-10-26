@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Creates a RDS Aurora cluster.
+Description: Create CloudFront.
 
 Parameters:
   # Scope of project
@@ -25,14 +25,21 @@ Parameters:
     Description: The certificate name for SSL compliance
     Type: String
     MinLength: '3'
-    MaxLength: '41'
+    MaxLength: '99'
+    ConstraintDescription: must specify Certificate name
+  # Set Creficate ARN
+  CertificateARN:
+    Description: Please enter the ARN of the created  CF certificate
+    Type: String
+    MinLength: '3'
+    MaxLength: '99'
     ConstraintDescription: must specify Certificate name
   # Create Origin Certificate Name
   OriginCertificateName:
     Description: The certificate name for SSL compliance
     Type: String
     MinLength: '3'
-    MaxLength: '41'
+    MaxLength: '99'
     ConstraintDescription: must specify Origin Certificate name
 
 Resources:
@@ -62,5 +69,5 @@ Resources:
             QueryString: true
           SmoothStreaming: false
         ViewerCertificate:
-            AcmCertificateArn: arn:aws:acm:us-east-1:937281553742:certificate/4acaa565-9e53-4fa6-be7d-3691085df1cb
+            AcmCertificateArn: !Ref CertificateARN
             SslSupportMethod: sni-only

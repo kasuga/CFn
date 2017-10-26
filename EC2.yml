@@ -4,8 +4,9 @@ Description: Create EC2 Instance
 Parameters:
   # Designation SSH for keyPair
   KeyPair:
-    Description: KeyPair Name.
+    Description: The EC2 Key Pair to allow SSH access to the instances
     Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
   # Scope of project
   EnvType:
     Description: Environment type.
@@ -24,6 +25,38 @@ Parameters:
     MaxLength: '16'
     AllowedPattern: '[a-zA-Z0-9]*'
     ConstraintDescription: must specify Project id.
+  # EC2 Instance Type
+  InstanceType:
+    Description: Please Select EC2 instance type.
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - m1.small
+      - m1.medium
+      - m1.large
+      - m1.xlarge
+    ConstraintDescription: must be a valid EC2 instance type.
+  # Set SpringBoard for az
+  SpringBoardAZ:
+    Description: Please Select SpringBoard for AZ
+    Type: AWS::EC2::AvailabilityZone::Name
+    ConstraintDescription: must be a valid AZ.
+  # Set  WEB1 for AZ
+  WEB1AZ:
+    Description: Please Select WEB1 for AZ
+    Type: AWS::EC2::AvailabilityZone::Name
+    ConstraintDescription: must be a valid AZ.
+  # Set  WEB2 for AZ
+  WEB2AZ:
+    Description: Please Select WEB2 for AZ
+    Type: AWS::EC2::AvailabilityZone::Name
+    ConstraintDescription: must be a valid AZ.
   # SpringBoard EC Subnet
   SpringBoardSubnets:
     Description: The subnets to SpringBoard
@@ -61,11 +94,11 @@ Resources:
   SpringBoardEC2Instance:
     Type: 'AWS::EC2::Instance'
     Properties:
-      AvailabilityZone: us-east-1a
+      AvailabilityZone: !Ref SpringBoardAZ
       # Shutdown behavior
       InstanceInitiatedShutdownBehavior: stop
       ImageId: !FindInMap [ StackConfig, EC2, ImageId ]
-      InstanceType: t2.micro
+      InstanceType: !Ref InstanceType
       # keypairName when EC 2 is connected
       KeyName: !Ref KeyPair
       # Detailed monitoring setting
@@ -83,10 +116,10 @@ Resources:
   WEB1EC2Instance:
     Type: 'AWS::EC2::Instance'
     Properties:
-      AvailabilityZone: us-east-1a
+      AvailabilityZone: !Ref WEB1AZ
       InstanceInitiatedShutdownBehavior: stop
       ImageId: !FindInMap [ StackConfig, EC2, ImageId ]
-      InstanceType: 't2.micro'
+      InstanceType: !Ref InstanceType
       KeyName: !Ref KeyPair
       Monitoring: false
       SecurityGroupIds:
@@ -100,10 +133,10 @@ Resources:
   WEB2EC2Instance:
     Type: 'AWS::EC2::Instance'
     Properties:
-      AvailabilityZone: 'us-east-1a'
+      AvailabilityZone: !Ref WEB2AZ
       InstanceInitiatedShutdownBehavior: stop
       ImageId: !FindInMap [ StackConfig, EC2, ImageId ]
-      InstanceType: 't2.micro'
+      InstanceType: !Ref InstanceType
       KeyName: !Ref KeyPair
       Monitoring: false
       SecurityGroupIds:

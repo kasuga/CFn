@@ -61,13 +61,22 @@ Parameters:
     AllowedPattern: '[a-zA-Z0-9]*'
     ConstraintDescription: must contain only alphanumeric characters.
   # Set Database Subnet1
-  DatabaseSubnets:
+  DatabaseSubnets1:
     Description: The subnets to place database instances in.
-    Type: 'List<AWS::EC2::Subnet::Id>'
+    Type: AWS::EC2::Subnet::Id
+  # Set Database Subnet2
+  DatabaseSubnets2:
+    Description: The subnets to place database instances in.
+    Type: AWS::EC2::Subnet::Id
   # Set RDS Security Group
   RDSSecurityGroup:
     Description: The Security Group to place RDS
     Type: AWS::EC2::SecurityGroup::Id
+  # Set SpringBoard for az
+  AZ:
+    Description: Please Select SpringBoard for AZ
+    Type: AWS::EC2::AvailabilityZone::Name
+    ConstraintDescription: must be a valid AZ.
 
 Resources:
   # Create DB Subnet Group
@@ -76,7 +85,8 @@ Resources:
     Properties:
       DBSubnetGroupDescription: Enable RDS Multi-AZ access.
       SubnetIds:
-        - !Ref DatabaseSubnets
+        - !Ref DatabaseSubnets1
+        - !Ref DatabaseSubnets2
   # Create RDS Cluster
   RDSCluster:
     Type: 'AWS::RDS::DBCluster'
@@ -85,7 +95,7 @@ Resources:
       DatabaseName: !Ref DBName
       MasterUsername: !Ref DBUser
       MasterUserPassword: !Ref DBPassword
-      DBSubnetGroupName: !Ref RDSMultiAZSubnetGroup
+      DBSubnetGroupName: default-vpc-66906c1e
       VpcSecurityGroupIds:
         - !Ref RDSSecurityGroup
   # Create Primary Instance
@@ -101,7 +111,6 @@ Resources:
   RDSReplicaInstance:
     Type: 'AWS::RDS::DBInstance'
     Properties:
-      AvailabilityZone: us-east-1c
       Engine: aurora
       DBClusterIdentifier: !Ref RDSCluster
       DBInstanceClass: !Ref DBInstanceType

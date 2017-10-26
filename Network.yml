@@ -24,6 +24,36 @@ Parameters:
   VPC:
     Description: Set VPC.
     Type: AWS::EC2::VPC::Id
+    # Set SpringBoard for az
+  PublicSubnetAAZ:
+    Description: Please Select PublicSubnetA for AZ
+    Type: AWS::EC2::AvailabilityZone::Name
+    ConstraintDescription: must be a valid AZ.
+  # Set  WEB1 for AZ
+  PublicSubnetCAZ:
+    Description: Please Select PublicSubnetC for AZ
+    Type: AWS::EC2::AvailabilityZone::Name
+    ConstraintDescription: must be a valid AZ.
+  # Set  WEB2 for AZ
+  PrivateSubnetWEBAAZ:
+    Description: Please Select WEBA for AZ
+    Type: AWS::EC2::AvailabilityZone::Name
+    ConstraintDescription: must be a valid AZ.
+  # Set  WEB2 for AZ
+  PrivateSubnetWEBCAZ:
+    Description: Please Select WEBC for AZ
+    Type: AWS::EC2::AvailabilityZone::Name
+    ConstraintDescription: must be a valid AZ.
+  # Set  WEB2 for AZ
+  PrivateSubnetDBAAZ:
+    Description: Please Select DBA for AZ
+    Type: AWS::EC2::AvailabilityZone::Name
+    ConstraintDescription: must be a valid AZ.
+  # Set  WEB2 for AZ
+  PrivateSubnetDBCAZ:
+    Description: Please Select DBC for AZ
+    Type: AWS::EC2::AvailabilityZone::Name
+    ConstraintDescription: must be a valid AZ.
 
 Resources:
   # Create Public RouteTable
@@ -63,7 +93,7 @@ Resources:
   PublicSubnetA:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: 'us-east-1a'
+      AvailabilityZone: !Ref PublicSubnetAAZ
       CidrBlock: 192.168.100.0/24
       # Get Public IP Yes or No
       MapPublicIpOnLaunch: Yes
@@ -82,7 +112,7 @@ Resources:
   PublicSubnetC:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: 'us-east-1c'
+      AvailabilityZone: !Ref PublicSubnetCAZ
       CidrBlock: 192.168.200.0/24
       MapPublicIpOnLaunch: Yes
       Tags:
@@ -100,7 +130,7 @@ Resources:
   PrivateSubnetWEBA:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: 'us-east-1a'
+      AvailabilityZone: !Ref PrivateSubnetWEBAAZ
       CidrBlock: 192.168.10.0/24
       Tags:
         - Key: Name
@@ -117,7 +147,7 @@ Resources:
   PrivateSubnetWEBC:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: 'us-east-1c'
+      AvailabilityZone: !Ref PrivateSubnetWEBCAZ
       CidrBlock: 192.168.20.0/24
       Tags:
         - Key: Name
@@ -134,7 +164,7 @@ Resources:
   PrivateSubnetDBA:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: 'us-east-1a'
+      AvailabilityZone: !Ref PrivateSubnetDBAAZ
       CidrBlock: 192.168.30.0/24
       Tags:
         - Key: Name
@@ -151,7 +181,7 @@ Resources:
   PrivateSubnetDBC:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: 'us-east-1c'
+      AvailabilityZone: !Ref PrivateSubnetDBCAZ
       CidrBlock: 192.168.40.0/24
       Tags:
         - Key: Name
