@@ -1,6 +1,65 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Create EC2 Instance
 
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Project Configuration
+        Parameters:
+          - EnvType
+          - ProjectId
+      - Label:
+          default: EC2 Common Parameters
+        Parameters:
+          - KeyPair
+          - InstanceType
+      - Label:
+            default: SpringBoard Parameters
+        Parameters:
+          - SpringBoardAZ
+          - SpringBoardSubnets
+          - SpringBoardSecurityGroup
+      - Label:
+            default: WEB1 Parameters
+        Parameters:
+          - WEB1AZ
+          - WEB1Subnets
+          - WEB1SecurityGroup
+      - Label:
+            default: SpringBoard Parameters
+        Parameters:
+          - WEB2AZ
+          - WEB2Subnets
+          - WEB2SecurityGroup
+    ParameterLabels:
+      EnvType:
+        default: Environment type.
+      ProjectId:
+        default: Project name id.
+      KeyPair:
+        default: KeyPair.
+      InstanceType:
+        default: InstanceType.
+      SpringBoardAZ:
+        default: AZ.
+      SpringBoardSubnets:
+        default: Subnets.
+      SpringBoardSecurityGroup:
+        default: SecurityGroup.
+      WEB1AZ:
+        default: AZ.
+      WBE1Subnets:
+        default: Subnets.
+      WEB1SecurityGroup:
+        default: SecurityGroup.
+      WEB2AZ:
+        default: AZ.
+      WBE2Subnets:
+        default: Subnets.
+      WEB2SecurityGroup:
+        default: SecurityGroup.
+
 Parameters:
   # Designation SSH for keyPair
   KeyPair:

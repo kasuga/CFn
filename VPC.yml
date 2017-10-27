@@ -1,10 +1,24 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Create VPC
 
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Project Configuration
+        Parameters:
+          - EnvType
+          - ProjectId
+    ParameterLabels:
+      EnvType:
+        default: Environment type.
+      ProjectId:
+        default: Project name id.
+
 Parameters:
   # Scope of project
   EnvType:
-    Description: Environment type.
+    Description: Select Environment type.
     Default: dev
     Type: String
     AllowedValues:
@@ -14,7 +28,7 @@ Parameters:
     ConstraintDescription: must specify dev or mnt or prd.
   # Project ID Config
   ProjectId:
-    Description: Project name id.
+    Description: Please enter Project name id.
     Type: String
     MinLength: '0'
     MaxLength: '16'

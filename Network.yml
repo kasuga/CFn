@@ -1,10 +1,49 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Create Network
 
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Project Configuration
+        Parameters:
+          - EnvType
+          - ProjectId
+      - Label:
+          default: Network Common Configuration
+        Parameters:
+          - VPC
+      - Label:
+          default: Subnet AZ Configuration
+        Parameters:
+          - PublicSubnet1AZ
+          - PublicSubnet2AZ
+          - PrivateSubnetWEB1AZ
+          - PrivateSubnetWEB2AZ
+          - PrivateSubnetDB1AZ
+          - PrivateSubnetDB2AZ
+    ParameterLabels:
+      EnvType:
+        default: Environment type.
+      ProjectId:
+        default: Project name id.
+      PublicSubnet1AZ:
+        default: PublicSubnet1 AZ.
+      PublicSubnet2AZ:
+        default: PublicSubnet2 AZ.
+      PrivateSubnetWEB1AZ:
+        default: PrivateSubnetWEB1 AZ.
+      PrivateSubnetWEB2AZ:
+        default: PrivateSubnetWEB2 AZ.
+      PrivateSubnetDB1AZ:
+        default: PrivateSubnetDB1 AZ.
+      PrivateSubnetDB2AZ:
+        default: PrivateSubnetDB2 AZ.
+
 Parameters:
   # Scope of project
   EnvType:
-    Description: Environment type.
+    Description: Select Environment type.
     Default: dev
     Type: String
     AllowedValues:
@@ -14,7 +53,7 @@ Parameters:
     ConstraintDescription: must specify dev or mnt or prd.
   # Project ID Config
   ProjectId:
-    Description: Project name id.
+    Description: Please enter Project name id.
     Type: String
     MinLength: '0'
     MaxLength: '16'
@@ -25,33 +64,33 @@ Parameters:
     Description: Set VPC.
     Type: AWS::EC2::VPC::Id
     # Set SpringBoard for az
-  PublicSubnetAAZ:
-    Description: Please Select PublicSubnetA for AZ
+  PublicSubnet1AZ:
+    Description: Please Select PublicSubnet1 for AZ
     Type: AWS::EC2::AvailabilityZone::Name
     ConstraintDescription: must be a valid AZ.
   # Set  WEB1 for AZ
-  PublicSubnetCAZ:
-    Description: Please Select PublicSubnetC for AZ
+  PublicSubnet2AZ:
+    Description: Please Select PublicSubnet2 for AZ
     Type: AWS::EC2::AvailabilityZone::Name
     ConstraintDescription: must be a valid AZ.
   # Set  WEB2 for AZ
-  PrivateSubnetWEBAAZ:
-    Description: Please Select WEBA for AZ
+  PrivateSubnetWEB1AZ:
+    Description: Please Select WEB1 for AZ
     Type: AWS::EC2::AvailabilityZone::Name
     ConstraintDescription: must be a valid AZ.
   # Set  WEB2 for AZ
-  PrivateSubnetWEBCAZ:
-    Description: Please Select WEBC for AZ
+  PrivateSubnetWEB2AZ:
+    Description: Please Select WEB2 for AZ
     Type: AWS::EC2::AvailabilityZone::Name
     ConstraintDescription: must be a valid AZ.
   # Set  WEB2 for AZ
-  PrivateSubnetDBAAZ:
-    Description: Please Select DBA for AZ
+  PrivateSubnetDB1AZ:
+    Description: Please Select DB1 for AZ
     Type: AWS::EC2::AvailabilityZone::Name
     ConstraintDescription: must be a valid AZ.
   # Set  WEB2 for AZ
-  PrivateSubnetDBCAZ:
-    Description: Please Select DBC for AZ
+  PrivateSubnetDB2AZ:
+    Description: Please Select DB2 for AZ
     Type: AWS::EC2::AvailabilityZone::Name
     ConstraintDescription: must be a valid AZ.
 
@@ -100,7 +139,7 @@ Resources:
       # Association of Elastic IP
       AllocationId: !GetAtt ElasticIP.AllocationId
       # Association of SubnetID
-      SubnetId: !Ref PublicSubnetA
+      SubnetId: !Ref PublicSubnet1
       Tags:
         - Key: Name
           Value: !Join [ "-", [ "Ref":"EnvType" , "Ref":"ProjectId" ,"nat" ] ]
@@ -125,10 +164,10 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable
 
   # Create Public Subnet A
-  PublicSubnetA:
+  PublicSubnet1:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: !Ref PublicSubnetAAZ
+      AvailabilityZone: !Ref PublicSubnet1AZ
       CidrBlock: 192.168.100.0/24
       # Get Public IP Yes or No
       MapPublicIpOnLaunch: Yes
@@ -137,17 +176,17 @@ Resources:
           Value: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'pub-a' ] ]
       VpcId: !Ref VPC
   # Attach Public Subnet A to Route Table
-  PublicSubnetAAttachRouteTable:
+  PublicSubnet1AttachRouteTable:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref PublicSubnetA
+      SubnetId: !Ref PublicSubnet1
 
 # Create Public Subnet C
-  PublicSubnetC:
+  PublicSubnet2:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: !Ref PublicSubnetCAZ
+      AvailabilityZone: !Ref PublicSubnet2AZ
       CidrBlock: 192.168.200.0/24
       MapPublicIpOnLaunch: Yes
       Tags:
@@ -155,79 +194,79 @@ Resources:
           Value: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'pub-c' ] ]
       VpcId: !Ref VPC
   # Attach Public Subnet C to Route Table
-  PublicSubnetCAttachRouteTable:
+  PublicSubnet2AttachRouteTable:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref PublicSubnetC
+      SubnetId: !Ref PublicSubnet2
 
 # Create Private Subnet  WBE A
-  PrivateSubnetWEBA:
+  PrivateSubnetWEB1:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: !Ref PrivateSubnetWEBAAZ
+      AvailabilityZone: !Ref PrivateSubnetWEB1AZ
       CidrBlock: 192.168.10.0/24
       Tags:
         - Key: Name
           Value: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'pri-web-a' ] ]
       VpcId: !Ref VPC
   # Attach Private Subnet WEB A to Route Table
-  PrivateSubnetWEBAAttachRouteTable:
+  PrivateSubnetWEB1AttachRouteTable:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       RouteTableId: !Ref PrivateRouteTable
-      SubnetId: !Ref PrivateSubnetWEBA
+      SubnetId: !Ref PrivateSubnetWEB1
 
 # Create Private Subnet WEB C
-  PrivateSubnetWEBC:
+  PrivateSubnetWEB2:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: !Ref PrivateSubnetWEBCAZ
+      AvailabilityZone: !Ref PrivateSubnetWEB2AZ
       CidrBlock: 192.168.20.0/24
       Tags:
         - Key: Name
           Value: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'pri-web-c' ] ]
       VpcId: !Ref VPC
   # Attach Private Subnet WEB C to Route Table
-  PrivateSubnetWEBCAttachRouteTable:
+  PrivateSubnetWEB2AttachRouteTable:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       RouteTableId: !Ref PrivateRouteTable
-      SubnetId: !Ref PrivateSubnetWEBC
+      SubnetId: !Ref PrivateSubnetWEB2
 
 # Create Private Subnet DB A
-  PrivateSubnetDBA:
+  PrivateSubnetDB1:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: !Ref PrivateSubnetDBAAZ
+      AvailabilityZone: !Ref PrivateSubnetDB1AZ
       CidrBlock: 192.168.30.0/24
       Tags:
         - Key: Name
           Value: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'pri-db-a' ] ]
       VpcId: !Ref VPC
   # Attach Private Subnet DB A to Route Table
-  PrivateSubnetDBAAttachRouteTable:
+  PrivateSubnetDB1AttachRouteTable:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       RouteTableId: !Ref PrivateRouteTable
-      SubnetId: !Ref PrivateSubnetDBA
+      SubnetId: !Ref PrivateSubnetDB1
 
 # Create Private Subnet DB C
-  PrivateSubnetDBC:
+  PrivateSubnetDB2:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: !Ref PrivateSubnetDBCAZ
+      AvailabilityZone: !Ref PrivateSubnetDB2AZ
       CidrBlock: 192.168.40.0/24
       Tags:
         - Key: Name
           Value: !Join [ '-', [ 'Ref':'EnvType' , 'Ref':'ProjectId' ,'pri-db-c' ] ]
       VpcId: !Ref VPC
   # Attach Private Subnet DB C to Route Table
-  PrivateSubnetDBCAttachRouteTable:
+  PrivateSubnetDB2AttachRouteTable:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       RouteTableId: !Ref PrivateRouteTable
-      SubnetId: !Ref PrivateSubnetDBC
+      SubnetId: !Ref PrivateSubnetDB2
 
 # Create SecurityGroup for SpringBoard
   SpringBoardSecurityGroup:

@@ -1,6 +1,32 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Create ElastiCache.
 
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Project Configuration
+        Parameters:
+          - EnvType
+          - ProjectId
+      - Label:
+          default: ElastiCache Configuration
+        Parameters:
+          - VPC
+          - ElastiCacheSubnets
+          - ElastiCacheSecurityGroup
+    ParameterLabels:
+      EnvType:
+        default: Environment type.
+      ProjectId:
+        default: Project name id.
+      VPC:
+        default: VPC
+      ElastiCacheSubnets:
+        default: Subnets
+      ElastiCacheSecurityGroup:
+        default: SecurityGroup
+
 Parameters:
   # Scope of project
   EnvType:
@@ -24,14 +50,17 @@ Parameters:
   VPC:
     Description: The VPC
     Type: AWS::EC2::VPC::Id
+    ConstraintDescription: must Select VPC
   # ElastiCache Subnet
   ElastiCacheSubnets:
     Description: The subnets to place ElasticCache
     Type: AWS::EC2::Subnet::Id
+    ConstraintDescription: must Select Subnet
   # ElastiCache Security Group
   ElastiCacheSecurityGroup:
     Description: The securitygroup to place ElasticCache
     Type: AWS::EC2::SecurityGroup::Id
+    ConstraintDescription: must Select Security Group
 
 Resources:
   # Create ElastiCache Subnet Group

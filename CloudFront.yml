@@ -1,6 +1,32 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Create CloudFront.
 
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Project Configuration
+        Parameters:
+          - EnvType
+          - ProjectId
+      - Label:
+          default: CloudFront Configuration
+        Parameters:
+          - CertificateName
+          - CertificateARN
+          - OriginCertificateName
+    ParameterLabels:
+      EnvType:
+        default: Environment type.
+      ProjectId:
+        default: Project name id.
+      CertificateName:
+        default: CertificateName
+      CertificateARN:
+        default: CertificateARN
+      OriginCertificateName:
+        default: OriginCertificateName
+
 Parameters:
   # Scope of project
   EnvType:

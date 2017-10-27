@@ -1,10 +1,48 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Creates a RDS Aurora cluster.
 
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Project Configuration
+        Parameters:
+          - EnvType
+          - ProjectId
+      - Label:
+          default: Database Configuration
+        Parameters:
+          - DBInstanceType
+          - DBName
+          - DBUser
+          - DBPassword
+          - DBSubnets1
+          - DBSubnets2
+          - DBSecurityGroup
+    ParameterLabels:
+      EnvType:
+        default: Environment type.
+      ProjectId:
+        default: Project name id.
+      DBInstanceType:
+        default: Instance Type.
+      DBName:
+        default: DB name.
+      DBUser:
+        default: DB User name.
+      DBPassword:
+        default: DB Password.
+      DBSubnets1:
+        default: DB Subnet1.
+      DBSubnets2:
+        default: DB Subnet2.
+      DBSecurityGroup:
+        default: DB SecurityGroup
+
 Parameters:
   # Scope of project
   EnvType:
-    Description: Environment type.
+    Description: Select Environment type.
     Default: dev
     Type: String
     AllowedValues:
@@ -14,7 +52,7 @@ Parameters:
     ConstraintDescription: must specify dev or mnt or prd.
   # Project ID Config
   ProjectId:
-    Description: Project name id.
+    Description: Please enter Project name id.
     Type: String
     MinLength: '0'
     MaxLength: '16'
@@ -60,17 +98,17 @@ Parameters:
     MaxLength: '41'
     AllowedPattern: '[a-zA-Z0-9]*'
     ConstraintDescription: must contain only alphanumeric characters.
-  # Set Database Subnet1
-  DatabaseSubnets1:
+  # Set DBSubnet1
+  DBSubnets1:
     Description: The subnets to place database instances in.
     Type: AWS::EC2::Subnet::Id
-  # Set Database Subnet2
-  DatabaseSubnets2:
+  # Set DB Subnet2
+  DBSubnets2:
     Description: The subnets to place database instances in.
     Type: AWS::EC2::Subnet::Id
-  # Set RDS Security Group
-  RDSSecurityGroup:
-    Description: The Security Group to place RDS
+  # Set DB Security Group
+  DBSecurityGroup:
+    Description: The Security Group to place DB
     Type: AWS::EC2::SecurityGroup::Id
 
 Resources:
@@ -80,8 +118,8 @@ Resources:
     Properties:
       DBSubnetGroupDescription: Enable RDS Multi-AZ access.
       SubnetIds:
-        - !Ref DatabaseSubnets1
-        - !Ref DatabaseSubnets2
+        - !Ref DBSubnets1
+        - !Ref DBSubnets2
   # Create RDS Cluster
   RDSCluster:
     Type: 'AWS::RDS::DBCluster'
@@ -92,7 +130,7 @@ Resources:
       MasterUserPassword: !Ref DBPassword
       DBSubnetGroupName: !Ref RDSMultiAZSubnetGroup
       VpcSecurityGroupIds:
-        - !Ref RDSSecurityGroup
+        - !Ref DBSecurityGroup
   # Create Primary Instance
   RDSPrimaryInstance:
     Type: 'AWS::RDS::DBInstance'

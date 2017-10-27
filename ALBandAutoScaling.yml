@@ -1,6 +1,62 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Creates ALB & AutoScaling
 
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Project Configuration
+        Parameters:
+          - EnvType
+          - ProjectId
+      - Label:
+          default: ALB Configuration
+        Parameters:
+          - VPC
+          - ALBSubnet1
+          - ALBSubnet2
+          - EC2Balancing1
+          - EC2Balancing2
+          - ALBSecurityGroup
+          - OriginCertificateName
+      - Label:
+          default: AutoScaling Configuration
+        Parameters:
+          - OperatorEmail
+          - InstanceType
+          - KeyPair
+          - AutoScalingSubnets
+          - AutoScalingSecurityGroup
+    ParameterLabels:
+      EnvType:
+        default: Environment type.
+      ProjectId:
+        default: Project name id.
+      VPC:
+        default: VPC
+      ALBSubnet1:
+        default: ALB Subnet1.
+      ALBSubnet2:
+        default: ALB Subnet2.
+      EC2Balancing1:
+        default: Balancing1.
+      EC2Balancing2:
+        default: Balancing2.
+      ALBSecurityGroup:
+        default: ALB Security Group.
+      OriginCertificateName:
+        default: Origin Certificate Name.
+      OperatorEmail:
+        default: Get Alert Email
+      InstanceType:
+        default: InstanceType
+      KeyPair:
+        default: KeyPair
+      AutoScalingSubnets:
+        default: Subnets
+      AutoScalingSecurityGroup:
+        default: SecurityGroup
+
 Parameters:
 # Designation SSH for keyPair
   KeyPair:
