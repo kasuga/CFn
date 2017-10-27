@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Test CFn Template
+Description: Create ElastiCache.
 
 Parameters:
   # Scope of project

@@ -88,6 +88,41 @@ Resources:
       InternetGatewayId: !Ref InternetGW
       # Association of VPC
       VpcId: !Ref VPC
+  # Get Elastic IP
+  ElasticIP:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: vpc
+  # Create NATGW
+  NATGW:
+    Type: "AWS::EC2::NatGateway"
+    Properties:
+      # Association of Elastic IP
+      AllocationId: !GetAtt ElasticIP.AllocationId
+      # Association of SubnetID
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: !Join [ "-", [ "Ref":"EnvType" , "Ref":"ProjectId" ,"nat" ] ]
+  # Setting Route for Public RouteTable
+  PublicRoute:
+    Type: "AWS::EC2::Route"
+    Properties:
+      # Use for routing destination reference CIDR
+      DestinationCidrBlock: "0.0.0.0/0"
+      # Association of InternetGW
+      GatewayId: !Ref InternetGW
+      # Association of RouteTable
+      RouteTableId: !Ref PublicRouteTable
+
+  # Setting Route for Private RouteTable
+  PrivateRoute:
+    Type: "AWS::EC2::Route"
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      # Association of NATGW
+      NatGatewayId: !Ref NATGW
+      RouteTableId: !Ref PrivateRouteTable
 
   # Create Public Subnet A
   PublicSubnetA:

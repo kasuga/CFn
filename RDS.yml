@@ -72,11 +72,6 @@ Parameters:
   RDSSecurityGroup:
     Description: The Security Group to place RDS
     Type: AWS::EC2::SecurityGroup::Id
-  # Set SpringBoard for az
-  AZ:
-    Description: Please Select SpringBoard for AZ
-    Type: AWS::EC2::AvailabilityZone::Name
-    ConstraintDescription: must be a valid AZ.
 
 Resources:
   # Create DB Subnet Group
@@ -95,7 +90,7 @@ Resources:
       DatabaseName: !Ref DBName
       MasterUsername: !Ref DBUser
       MasterUserPassword: !Ref DBPassword
-      DBSubnetGroupName: default-vpc-66906c1e
+      DBSubnetGroupName: !Ref RDSMultiAZSubnetGroup
       VpcSecurityGroupIds:
         - !Ref RDSSecurityGroup
   # Create Primary Instance
